@@ -1,0 +1,16 @@
+
+
+# logs
+logs
+
+# db
+airflow.db
+
+# pid
+airflow-webserver.pid
+
+# cache file
+__pycache__
+
+# env
+airflow.cfg

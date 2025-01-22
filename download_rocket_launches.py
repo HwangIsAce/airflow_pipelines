@@ -18,15 +18,16 @@ dag = DAG(
 
 download_launches = BashOperator( # execute bash command
     task_id="download_launches",
-    bash_command="curl -o /tmp/launches.json 'https://ll.thespacedevs.com/2.0.0/launch/upcoming'",
+    bash_command="curl -o /tmp/launches.json -L 'https://ll.thespacedevs.com/2.0.0/launch/upcoming'",
     dag=dag,
 )
 
 def _get_pictures():
     pathlib.Path("/tmp/images").mkdir(parents=True, exist_ok=True)
+    
     with open('/tmp/launches.json') as f:
         launches=json.load(f)
-        image_urls=[launches['image'] for launch in launches['results']]
+        image_urls=[launch['image'] for launch in launches['results']]
         for image_url in image_urls:
             try:
                 response=requests.get(image_url)

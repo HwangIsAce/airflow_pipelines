@@ -11,32 +11,36 @@ dag = DAG(
     start_date=dt.datetime(2019, 1, 1),
     end_date=dt.datetime(2019, 1, 5),
     schedule_interval=dt.timedelta(days=3),
+    catchup=False,
 )
 
 fetch_events = BashOperator(
     task_id="fetch_events",
     bash_command=(
         "mkdir -p /data && "
-        "curl -o /data/events.json "
+        "curl -o /data/events/{{ds}}.json "
         "http://localhost:5000/events?"
-        "start_date={{execution_date.strftime('%Y-%m-%d')}}"
-        "end_date={{next_execution_date.strftime('%Y-%m-%d')}}"
+        "start_date={{ds}}&"
+        "end_date={{next_ds}}"
     ),
     dag=dag,
 )
 
-def _calculate_stats(input_path, output_path):
-    events=pd.read_json(input_path)
-    stats=events.groupby(["date", "user"]).size().reset_index()
+def _calculate_stats(**context):
+    input_path=context["templates_dict"]["input_path"]
+    output_path=context["templates_dict"]["output_path"]
     Path(output_path).parent.mkdir(exist_ok=True)
+
+    events=pd.read_csv(input_path)
+    stats=events.groupby(["date", "user"]).size().reset_index()
     stats.to_csv(output_path, index=False)
 
 calculate_stats = PythonOperator(
     task_id="calculate_stats",
     python_callable=_calculate_stats,
     op_kwargs={
-        "input_path": "/data/events.json",
-        "output_path": "data/stats.csv",
+        "input_path": "/data/events/{{ds}}.json",
+        "output_path": "data/stats/{{ds}}.csv",
     },
     dag=dag,
 )
